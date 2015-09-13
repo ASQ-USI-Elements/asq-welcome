@@ -1,59 +1,85 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../core-icons/social-icons.html">
-<link rel="import" href="../asq-base/asq-base.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-icons/social-icons.html">
+<script src="../qrjs/qr.js"></script>
+<link rel="import" href="../qr-code/src/qr-code.html">
 
-<polymer-element name="asq-welcome" attributes="joinMessage">
+<link rel="import" href="../asq-base/asq-base.html">
+<!--
+`asq-welcome` is an element that allows presenters to advertise the presentation url and viewers to know the status of their connection.
+
+##### Example
+    <asq-welcome></asq-welcome>
+
+@element asq-welcome
+@demo demo/index.html
+@group ASQ Elements
+@blurb Element to put on your first slide.
+@homepage http://github.com/ASQ-USI-Elements/asq-welcome
+-->
+<dom-module id="asq-welcome">
   <template>
     <style>
-      :host{
-        display:block;
-      }
+        :host{
+          display:block;
+        }
 
-      .icon-group{
-      padding-left: 20px;
-      }
+        .icon-group{
+          padding-left: 20px;
+        }
 
-      #viewersNumContainer{
-        text-align: center
-      }
+        #viewerIcons{
+          @apply(--layout-flex);
+          @apply(--layout-horizontal);
+          @apply(--layout-justified);
+          @apply(--layout-wrap);
+        }
 
-      #viewersNum{
-        font-weight: bold;
-      }
-    </style>
+        #viewersNumContainer{
+          text-align: center
+        }
+
+        #viewersNum{
+          font-weight: bold;
+        }
+      </style>
 
     <!-- template for viewer -->
-    <template if="{{role==roles.VIEWER}}">
-      <template if="{{!connected}}">
-        <h4 id="connectingMsg">Connecting to {{liveUrl}}</h4>
+    <template is="dom-if" if="{{hasRole(roles.VIEWER)}}">
+      <template is="dom-if" if="{{!connected}}">
+        <h4 id="connectingMsg">Connecting to <span>[[liveUrl]]</span></h4>
       </template>
 
-      <template if="{{connected}}">
+      <template is="dom-if" if="{{connected}}">
         <h4 id="connectedMsg">Connected!</h4>
       </template>
     </template>
 
     <!-- template for presenter -->
-    <template  if="{{role==roles.PRESENTER}}">
-      <h4 id="joinMsg">{{joinMessage}}</h4>
-      <h3 id="liveUrl">{{liveUrl}}</h3>
+    <template is="dom-if" if="{{hasRole(roles.PRESENTER)}}">
+      <div id="joinMsg">[[joinMessage]] <a id="liveUrl" href="{{liveUrl}}">[[liveUrl]]</a></div>
 
-      <template if="{{!connected}}">
+      <div id="qrCodeContainer">
+        <qr-code format="svg" data="[[presentationViewerUrl]]">
+      </qr-code></div>
+
+
+      <template is="dom-if" if="{{!connected}}">
         <h4 id="connectingMsg">Connecting to server</h4>
       </template>
 
-      <template if="{{connected}}">
-        <div flex id="viewerIcons" horizontal layout justified wrap>
-          <template repeat="{{iconGroup in iconGroups}}">
-          <div class="icon-group" >
-            <template repeat="{{icon in iconGroup}}"> 
-              <core-icon icon="social:person"></core-icon>    
+      <template is="dom-if" if="{{connected}}">
+        <div id="viewerIcons">
+          <template is="dom-repeat" items="{{_iconGroups}}" as="iconGroup">
+          <div class="icon-group">
+            <template is="dom-repeat" items="[[iconGroup]]" as="icon"> 
+              <iron-icon icon="social:person"></iron-icon>    
             </template>
           </div>
           </template>
         </div>
         <div id="viewersNumContainer">
-          <span id="viewersNum">{{connectedViewers.length}}</span> viewers
+          <span id="viewersNum">[[connectedViewers.length]]</span> viewers
         </div>
       </template>
 
@@ -61,93 +87,130 @@
 
   </template>
   <script>
-    (function() {
+    (function () {
+      Polymer({
+        is: 'asq-welcome',
 
-      var p = {
-        joinMessage: 'Join this presentation at:',
-        liveUrl: '',
-        connected: false,
+        behaviors: [ASQ.asqQuestionElementBehavior],
 
-        computed: {
-          iconGroups : 'computeIconGroups(connectedViewers.length)'
+        properties: {
+          /**
+           * Whether we are connected to server or not
+           */
+          connected: {
+            type: Boolean,
+            value: false
+          },
+
+           /**
+           * An array of all the connected viewers
+           */
+          connectedViewers: {
+            type: Array,
+            value: function(){ return []; },
+            notify: true
+          },
+
+          _iconGroups: { 
+            notify: true,
+            computed: '_computeIconGroups(connectedViewers.length)' 
+          },
+
+          /**
+           * The message to display to the audience to join the presentation.
+           */
+          joinMessage: {
+            type: String,
+            value: 'Join this presentation at:',
+            notify: true
+          },
+
+          /**
+           * The URL of the live presentation
+           */
+          liveUrl: {
+            type: String,
+            value: '',
+            notify: true
+          },
+
+          /**
+           * The URL of the live presentation
+           */
+          presentationViewerUrl: {
+            type: String,
+            value: '',
+            notify: true
+          }
         },
 
-        created: function(){
-          this.connectedViewers = [];
-          document.addEventListener('asq-ready', function(evt){
-            try{
-              this.subscribeToEvents(evt.detail.asqEventBus)
-            }catch(err){
-              console.debug('failed to subscribeToEvents');
+        created: function () {
+          document.addEventListener('asq-ready', function (evt) {
+            try {
+              this._subscribeToEvents(evt.detail.asqEventBus);
+            } catch (err) {
+              console.debug('failed to _subscribeToEvents');
             }
           }.bind(this));
         },
 
-        computeIconGroups: function(len){
-          var maxLength = 50; 
+        _computeIconGroups: function (len) {
+          var maxLength = 50;
           var ipg = 5;
-
           var left = parseInt(len) || 0;
-          if(left > maxLength) { left = maxLength };
-
+          if (left > maxLength) {
+            left = maxLength;
+          }
+          ;
           var result = [];
-          
-          var groups = Math.floor(len/ipg) + (len%ipg > 0 ? 1: 0);
-
-          while(groups-- > 0){
+          var groups = Math.floor(len / ipg) + (len % ipg > 0 ? 1 : 0);
+          while (groups-- > 0) {
             var group = [];
-            var batch = (left > ipg? ipg : left)
+            var batch = left > ipg ? ipg : left;
             left = left - batch;
-            while(batch-- >0){
+            while (batch-- > 0) {
               group.push('');
             }
-            result.push(group)
+            result.push(group);
           }
           return result;
         },
-        
-        onSessionInfo:  function(event) {
+
+        _onSessionInfo: function (event) {
           this.role = event.role || this.role;
-
-          // if(event && event.protocol && event.host && event.port)
-          // var port = ((event.protocol == 'http:' && event.port == '80') 
-          //   || (event.protocol == 'https:' && event.port == '443'))
-          //   ? '/'
-          //   : ':' + event.port + '/';
-
           this.liveUrl = event.liveUrl;
+          this.presentationViewerUrl = event.presentationViewerUrl;
         },
 
-        onConnect:  function(event) {
+        _onConnect: function (event) {
           this.connected = true;
         },
 
-        onDisconnect:  function(event) {
+        _onDisconnect: function (event) {
           this.connected = false;
         },
 
-        updateViewersCount:  function(event) {
+        _updateViewersCount: function (event) {
         },
 
-        onConnectedClients: function(event){
-          if(this.role !== this.roles.PRESENTER) return;
+        _onConnectedClients: function (event) {
+          if (this.role !== this.roles.PRESENTER)
+            return;
           this.connectedViewers = event.connectedViewers;
         },
 
-        subscribeToEvents: function(eventBus){
-          eventBus.on('asq:sessionInfo', this.onSessionInfo.bind(this));
-          eventBus.on('socket:connect', this.onConnect.bind(this));
-          eventBus.on('socket:disconnect', this.onDisconnect.bind(this));
-          eventBus.on('asq:folo-connected', this.updateViewersCount.bind(this));
-          eventBus.on('asq:connected-clients', this.onConnectedClients.bind(this));
+        _subscribeToEvents: function (eventBus) {
+          eventBus.on('asq:sessionInfo', this._onSessionInfo.bind(this));
+          eventBus.on('socket:connect', this._onConnect.bind(this));
+          eventBus.on('socket:disconnect', this._onDisconnect.bind(this));
+          eventBus.on('asq:folo-connected', this._updateViewersCount.bind(this));
+          eventBus.on('asq:connected-clients', this._onConnectedClients.bind(this));
         },
-     
-      }
 
-      ASQ.asqify(p, true);
-      Polymer('asq-welcome', p);
-    })()
-    
+        hasRole: function (role) {
+          return this.role == role;
+        }
+      });
+    }());
   </script>
-
-</polymer-element>
+</dom-module>
