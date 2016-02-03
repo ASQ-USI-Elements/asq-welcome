@@ -13,13 +13,13 @@
   "license": "MIT",
   "dependencies": {
     "asq-base": "ASQ-USI-Elements/asq-base#master",
-    "iron-icons": "PolymerElements/iron-icons#~1.0.4",
+    "iron-icons": "PolymerElements/iron-icons#^1.0.4",
     "polymer": "Polymer/polymer#^1.2.1",
-    "qr-code": "webcomponent-qr-code#~0.1.8"
+    "qr-code": "webcomponent-qr-code#^0.1.8"
   },
   "devDependencies": {
-    "iron-component-page": "PolymerElements/iron-component-page#~1.0.9",
-    "test-fixture": "PolymerElements/test-fixture#~1.0.2",
-    "web-component-tester": "Polymer/web-component-tester#~3.3.29"
+    "iron-component-page": "PolymerElements/iron-component-page#^1.1.4",
+    "test-fixture": "PolymerElements/test-fixture#^1.0.2",
+    "web-component-tester": "Polymer/web-component-tester#^4.2.0"
   }
 }
