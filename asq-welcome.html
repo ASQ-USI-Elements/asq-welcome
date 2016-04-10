@@ -74,7 +74,7 @@
       <div id="joinMsg">[[joinMessage]] <a id="liveUrl" href="{{liveUrl}}">[[liveUrl]]</a></div>
 
       <div id="qrCodeContainer">
-        <qr-code format="svg" data="[[presentationViewerUrl]]">
+        <qr-code format="svg" data="[[presentationViewerUrl]]" modulesize$="{{modulesize}}">
       </qr-code></div>
 
 
@@ -128,6 +128,15 @@
           _iconGroups: { 
             notify: true,
             computed: '_computeIconGroups(connectedViewers.length)' 
+          },
+
+          /**
+          * Size of the QR modules in pixels.
+          */
+          modulesize:{
+            type: Number,
+            value: 5,
+            notify: true
           },
 
           /**
